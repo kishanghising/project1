@@ -17,6 +17,7 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
   late final TextEditingController _customerController;
   late final TextEditingController _amountController;
   late final TextEditingController _addController;
+  bool isNew = false;
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
     }
     final newNote = await _notesService.createNote();
     _note = newNote;
+    isNew = true;
     return newNote;
   }
 
@@ -92,27 +94,6 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
     }
   }
 
-  void _addToAmount() async {
-    String text = _addController.text;
-    final amountText = _amountController.text;
-    final note = _note;
-    final customer = _customerController.text;
-    int amount = int.tryParse(amountText) ?? 0;
-    int number = int.tryParse(text) ?? 0;
-    setState(() async {
-      amount += number;
-      _amountController.text = amount.toString();
-      if (note != null && customer.isNotEmpty) {
-        await _notesService.updateNote(
-          note: note,
-          customer: customer,
-          amount: amount,
-        );
-      }
-      _addController.clear();
-    });
-  }
-
   @override
   void dispose() {
     _deleteNoteIfTextIsEmpty();
@@ -130,14 +111,7 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
         title: const Text('Create or Update Customer'),
         // actions: [
         //   IconButton(
-        //     onPressed: () async {
-        //       final text = _customerController.text;
-        //       if (_note == null || text.isEmpty) {
-        //         await showCannotShareEmptyNoteDialog(context);
-        //       } else {
-        //         Share.share(text);
-        //       }
-        //     },
+        //     onPressed: () async {},
         //     icon: const Icon(Icons.share),
         //   ),
         // ],
@@ -148,43 +122,105 @@ class _CreateUpdateNoteViewState extends State<CreateUpdateNoteView> {
           switch (snapshot.connectionState) {
             case ConnectionState.done:
               _setupTextControllerListener();
-              return Column(
-                children: [
-                  TextField(
-                    controller: _customerController,
-                    keyboardType: TextInputType.text,
-                    maxLines: null,
-                    decoration: const InputDecoration(
-                      labelText: 'Customer',
-                    ),
-                  ),
-                  TextField(
-                    controller: _amountController,
-                    enabled: false,
-                    maxLines: null,
-                    decoration: const InputDecoration(
-                      hintText: 'Amount',
-                    ),
-                  ),
-                  TextField(
-                    autofocus: true,
-                    controller: _addController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Enter a number',
-                    ),
-                    onSubmitted: (_) {
-                      _addToAmount();
-                    },
-                  ),
-                ],
-              );
+              return CustomerView(
+                  customerController: _customerController,
+                  isNew: isNew,
+                  amountController: _amountController,
+                  addController: _addController);
 
             default:
               return const CircularProgressIndicator();
           }
         },
       ),
+    );
+  }
+}
+
+class CustomerView extends StatefulWidget {
+  const CustomerView({
+    super.key,
+    required TextEditingController customerController,
+    required this.isNew,
+    required TextEditingController amountController,
+    required TextEditingController addController,
+  })  : _customerController = customerController,
+        _amountController = amountController,
+        _addController = addController;
+
+  final TextEditingController _customerController;
+  final bool isNew;
+  final TextEditingController _amountController;
+  final TextEditingController _addController;
+
+  @override
+  State<CustomerView> createState() => _CustomerViewState();
+}
+
+class _CustomerViewState extends State<CustomerView> {
+  late FocusNode _firstTextFieldFocusNode;
+  late FocusNode _secondTextFieldFocusNode;
+
+  @override
+  void initState() {
+    _firstTextFieldFocusNode = FocusNode();
+    _secondTextFieldFocusNode = FocusNode();
+
+    super.initState();
+  }
+
+  void addToAmount() async {
+    String text = widget._addController.text;
+    final amountText = widget._amountController.text;
+    int amount = int.tryParse(amountText) ?? 0;
+    int number = int.tryParse(text) ?? 0;
+
+    setState(() {
+      amount += number;
+      widget._amountController.text = amount.toString();
+      widget._addController.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextField(
+          controller: widget._customerController,
+          autofocus: widget.isNew ? true : false,
+          keyboardType: TextInputType.text,
+          focusNode: _firstTextFieldFocusNode,
+          onEditingComplete: () {
+            _firstTextFieldFocusNode.unfocus();
+            FocusScope.of(context).requestFocus(_secondTextFieldFocusNode);
+          },
+          maxLines: null,
+          decoration: const InputDecoration(
+            labelText: 'Customer',
+          ),
+        ),
+        TextField(
+          controller: widget._amountController,
+          enabled: false,
+          maxLines: null,
+          decoration: const InputDecoration(
+            hintText: 'Amount',
+          ),
+        ),
+        TextField(
+          autofocus: true,
+          controller: widget._addController,
+          focusNode: _secondTextFieldFocusNode,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Enter a number',
+          ),
+          onEditingComplete: () {
+            addToAmount();
+          },
+        ),
+      ],
     );
   }
 }

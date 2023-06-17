@@ -93,27 +93,6 @@ class _ClearPaymentViewState extends State<ClearPaymentView> {
     }
   }
 
-  void _addToAmount() async {
-    String text = _addController.text;
-    final amountText = _amountController.text;
-    final note = _note;
-    final customer = _customerController.text;
-    int amount = int.tryParse(amountText) ?? 0;
-    int number = int.tryParse(text) ?? 0;
-    setState(() async {
-      amount -= number;
-      _amountController.text = amount.toString();
-      if (note != null && customer.isNotEmpty) {
-        await _notesService.updateNote(
-          note: note,
-          customer: customer,
-          amount: amount,
-        );
-      }
-      _addController.clear();
-    });
-  }
-
   void onDeleteNote() async {
     final note = _note;
     if (note != null) {
@@ -138,14 +117,7 @@ class _ClearPaymentViewState extends State<ClearPaymentView> {
         title: const Text('Clear Payments'),
         // actions: [
         //   IconButton(
-        //     onPressed: () async {
-        //       final text = _customerController.text;
-        //       if (_note == null || text.isEmpty) {
-        //         await showCannotShareEmptyNoteDialog(context);
-        //       } else {
-        //         Share.share(text);
-        //       }
-        //     },
+        //     onPressed: () async {},
         //     icon: const Icon(Icons.share),
         //   ),
         // ],
@@ -156,35 +128,13 @@ class _ClearPaymentViewState extends State<ClearPaymentView> {
           switch (snapshot.connectionState) {
             case ConnectionState.done:
               _setupTextControllerListener();
+
               return Column(
                 children: [
-                  TextField(
-                    controller: _customerController,
-                    keyboardType: TextInputType.text,
-                    maxLines: null,
-                    decoration: const InputDecoration(
-                      labelText: 'Customer',
-                    ),
-                  ),
-                  TextField(
-                    controller: _amountController,
-                    enabled: false,
-                    maxLines: null,
-                    decoration: const InputDecoration(
-                      hintText: 'Amount',
-                    ),
-                  ),
-                  TextField(
-                    autofocus: true,
-                    controller: _addController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Enter a number',
-                    ),
-                    onSubmitted: (_) {
-                      _addToAmount();
-                    },
-                  ),
+                  CustomerDetail(
+                      customerController: _customerController,
+                      amountController: _amountController,
+                      addController: _addController),
                   Padding(
                     padding: const EdgeInsets.only(top: 24),
                     child: Row(
@@ -197,7 +147,9 @@ class _ClearPaymentViewState extends State<ClearPaymentView> {
                                 await showDeleteDialog(context);
                             if (shouldDelete) {
                               onDeleteNote();
-                              Navigator.pop(currentContext);
+                              if (mounted) {
+                                Navigator.pop(currentContext);
+                              }
                             }
                           },
                           child: const Text('Clear All Payments'),
@@ -212,6 +164,74 @@ class _ClearPaymentViewState extends State<ClearPaymentView> {
           }
         },
       ),
+    );
+  }
+}
+
+class CustomerDetail extends StatefulWidget {
+  const CustomerDetail({
+    super.key,
+    required TextEditingController customerController,
+    required TextEditingController amountController,
+    required TextEditingController addController,
+  })  : _customerController = customerController,
+        _amountController = amountController,
+        _addController = addController;
+
+  final TextEditingController _customerController;
+  final TextEditingController _amountController;
+  final TextEditingController _addController;
+
+  @override
+  State<CustomerDetail> createState() => _CustomerDetailState();
+}
+
+class _CustomerDetailState extends State<CustomerDetail> {
+  void addToAmount() async {
+    String text = widget._addController.text;
+    final amountText = widget._amountController.text;
+    int amount = int.tryParse(amountText) ?? 0;
+    int number = int.tryParse(text) ?? 0;
+
+    setState(() {
+      amount -= number;
+      widget._amountController.text = amount.toString();
+      widget._addController.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextField(
+          controller: widget._customerController,
+          keyboardType: TextInputType.text,
+          maxLines: null,
+          decoration: const InputDecoration(
+            labelText: 'Customer',
+          ),
+        ),
+        TextField(
+          controller: widget._amountController,
+          enabled: false,
+          maxLines: null,
+          decoration: const InputDecoration(
+            hintText: 'Amount',
+          ),
+        ),
+        TextField(
+          autofocus: true,
+          controller: widget._addController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Enter a number',
+          ),
+          onEditingComplete: () {
+            addToAmount();
+          },
+        ),
+      ],
     );
   }
 }
