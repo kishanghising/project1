@@ -112,7 +112,7 @@ class _HistoryViewState extends State<HistoryView> {
                     ),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: const Color.fromARGB(255, 95, 98, 100),
+                        color: const Color.fromARGB(255, 65, 97, 119),
                         width: 2.0,
                       ),
                     ),
