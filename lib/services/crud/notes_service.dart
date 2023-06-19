@@ -3,6 +3,7 @@ import 'package:my_app/extensions/list/filter.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' show join;
 import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
 
 import 'crud_exceptions.dart';
 
@@ -30,36 +31,35 @@ class NotesService {
 
   Future<void> _cacheNotes() async {
     // await _ensureDBIsOpen();
-    final allNotes = await getAllNotes();
+    final allNotes = await getAllCustomers();
     _notes = allNotes.toList();
     _notesStreamController.add(_notes);
   }
 
-  Future<DatabaseNote> updateNote({
+  Future<DatabaseNote> updateCustomer({
     required DatabaseNote note,
     required String customer,
-    required int amount,
+    required int total,
   }) async {
     await _ensureDBIsOpen();
     final db = _getDatabaseOrThrow();
     //make sure note exist
-    await getNote(id: note.id);
+    await getCustomer(id: note.id);
     // update db
     final updatesCount = await db.update(
-      noteTable,
+      customerTable,
       {
         customerColumn: customer,
-        amountColumn: amount,
-        isSyncedWithCloudColumn: 0,
+        totalColumn: total,
       },
-      where: 'id = ?',
+      where: 'customer_id = ?',
       whereArgs: [note.id],
     );
 
     if (updatesCount == 0) {
       throw CouldNotUpdateNote();
     } else {
-      final updatedNote = await getNote(id: note.id);
+      final updatedNote = await getCustomer(id: note.id);
       _notes.removeWhere((note) => note.id == updatedNote.id);
       _notes.add(updatedNote);
       _notesStreamController.add(_notes);
@@ -67,23 +67,23 @@ class NotesService {
     }
   }
 
-  Future<Iterable<DatabaseNote>> getAllNotes() async {
+  Future<Iterable<DatabaseNote>> getAllCustomers() async {
     await _ensureDBIsOpen();
     final db = _getDatabaseOrThrow();
     final notes = await db.query(
-      noteTable,
+      customerTable,
     );
 
     return notes.map((noteRow) => DatabaseNote.fromRow(noteRow));
   }
 
-  Future<DatabaseNote> getNote({required int id}) async {
+  Future<DatabaseNote> getCustomer({required int id}) async {
     await _ensureDBIsOpen();
     final db = _getDatabaseOrThrow();
     final notes = await db.query(
-      noteTable,
+      customerTable,
       limit: 1,
-      where: 'id = ?',
+      where: 'customer_id = ?',
       whereArgs: [id],
     );
     if (notes.isEmpty) {
@@ -97,21 +97,21 @@ class NotesService {
     }
   }
 
-  Future<int> deleteAllNotes() async {
+  Future<int> deleteAllCustomer() async {
     await _ensureDBIsOpen();
     final db = _getDatabaseOrThrow();
-    final numberOfDeletions = await db.delete(noteTable);
+    final numberOfDeletions = await db.delete(customerTable);
     _notes = [];
     _notesStreamController.add(_notes);
     return numberOfDeletions;
   }
 
-  Future<void> deleteNote({required int id}) async {
+  Future<void> deleteCustomer({required int id}) async {
     await _ensureDBIsOpen();
     final db = _getDatabaseOrThrow();
     final deletedCount = await db.delete(
-      noteTable,
-      where: 'id = ?',
+      customerTable,
+      where: 'customer_id = ?',
       whereArgs: [id],
     );
     if (deletedCount == 0) {
@@ -123,25 +123,21 @@ class NotesService {
     }
   }
 
-  Future<DatabaseNote> createNote() async {
+  Future<DatabaseNote> createCustomer() async {
     await _ensureDBIsOpen();
     final db = _getDatabaseOrThrow();
-
     const customer = '';
-    const amount = 0;
-
+    const total = 0;
     //create the note
-    final noteId = await db.insert(noteTable, {
+    final customerId = await db.insert(customerTable, {
       customerColumn: customer,
-      amountColumn: amount,
-      isSyncedWithCloudColumn: 1,
+      totalColumn: total,
     });
 
     final note = DatabaseNote(
-      id: noteId,
+      id: customerId,
       customer: customer,
-      amount: amount,
-      isSyncedWithCloud: true,
+      total: total,
     );
 
     _notes.add(note);
@@ -150,58 +146,81 @@ class NotesService {
     return note;
   }
 
-  // Future<DatabaseUser> createUser({required String email}) async {
-  //   await _ensureDBIsOpen();
-  //   final db = _getDatabaseOrThrow();
-  //   final results = await db.query(
-  //     userTable,
-  //     limit: 1,
-  //     where: 'email = ?',
-  //     whereArgs: [email.toLowerCase()],
-  //   );
-  //   if (results.isNotEmpty) {
-  //     throw UserAlreadyExists();
-  //   }
+  Future<DatabasePurchase> createPurchase(
+      {required int amount, required int customerId}) async {
+    await _ensureDBIsOpen();
+    final db = _getDatabaseOrThrow();
+    final nowT = DateTime.now();
+    DateTime currentTime = DateTime(
+      nowT.year,
+      nowT.month,
+      nowT.day,
+      nowT.hour,
+      nowT.minute,
+      nowT.second,
+    );
+    final String now = DateFormat('yyyy-MM-dd HH:mm:ss').format(currentTime);
 
-  //   final userId = await db.insert(userTable, {
-  //     emailColumn: email.toLowerCase(),
-  //   });
+    final purchaseId = await db.insert(purchaseTable, {
+      amountColumn: amount,
+      customerIdColumn: customerId,
+      purchaseDateColumn: now,
+    });
 
-  //   return DatabaseUser(
-  //     id: userId,
-  //     email: email,
-  //   );
-  // }
+    return DatabasePurchase(
+      id: purchaseId,
+      amount: amount,
+      customerId: customerId,
+      purchaseDate: now,
+    );
+  }
 
-  // Future<DatabaseUser> getUser({required String email}) async {
-  //   await _ensureDBIsOpen();
-  //   final db = _getDatabaseOrThrow();
-  //   final results = await db.query(
-  //     userTable,
-  //     limit: 1,
-  //     where: 'email = ?',
-  //     whereArgs: [email.toLowerCase()],
-  //   );
+  Future<DatabasePurchase> getPurchase({required int purchaseId}) async {
+    await _ensureDBIsOpen();
+    final db = _getDatabaseOrThrow();
+    final results = await db.query(
+      purchaseTable,
+      where: 'purchase_id = ?',
+      whereArgs: [purchaseId],
+    );
 
-  //   if (results.isEmpty) {
-  //     throw CouldNotFindUser();
-  //   } else {
-  //     return DatabaseUser.fromRow(results.first);
-  //   }
-  // }
+    if (results.isEmpty) {
+      throw CouldNotFindUser();
+    } else {
+      return DatabasePurchase.fromRow(results.first);
+    }
+  }
 
-  // Future<void> deleteUser({required String email}) async {
-  //   await _ensureDBIsOpen();
-  //   final db = _getDatabaseOrThrow();
-  //   final deletedCount = await db.delete(
-  //     userTable,
-  //     where: 'email = ?',
-  //     whereArgs: [email.toLowerCase()],
-  //   );
-  //   if (deletedCount != 1) {
-  //     throw CouldNotDeleteUser();
-  //   }
-  // }
+  Future<Iterable<DatabasePurchase>> getAllPurchases(
+      {required int customerId}) async {
+    await _ensureDBIsOpen();
+    final db = _getDatabaseOrThrow();
+    final results = await db.query(
+      purchaseTable,
+      where: 'customer_id = ?',
+      whereArgs: [customerId],
+    );
+
+    if (results.isEmpty) {
+      throw CouldNotFindUser();
+    } else {
+      return results
+          .map((purchaseRow) => DatabasePurchase.fromRow(purchaseRow));
+    }
+  }
+
+  Future<void> deletePurchase({required int purchaseId}) async {
+    await _ensureDBIsOpen();
+    final db = _getDatabaseOrThrow();
+    final deletedCount = await db.delete(
+      purchaseTable,
+      where: 'purchase_id = ?',
+      whereArgs: [purchaseId],
+    );
+    if (deletedCount != 1) {
+      throw CouldNotDeleteUser();
+    }
+  }
 
   Database _getDatabaseOrThrow() {
     final db = _db;
@@ -242,6 +261,7 @@ class NotesService {
       _db = db;
 
       await db.execute(createNoteTable);
+      await db.execute(createPurchaseTable);
 
       await _cacheNotes();
     } on MissingPlatformDirectoryException {
@@ -250,56 +270,79 @@ class NotesService {
   }
 }
 
+// @immutable
+class DatabasePurchase {
+  final int id;
+  final int amount;
+  final int customerId;
+  final String purchaseDate;
+
+  const DatabasePurchase({
+    required this.id,
+    required this.amount,
+    required this.customerId,
+    required this.purchaseDate,
+  });
+
+  DatabasePurchase.fromRow(Map<String, Object?> map)
+      : id = map[purchaseIdColumn] as int,
+        customerId = map[customerIdColumn] as int,
+        amount = map[amountColumn] as int,
+        purchaseDate = map[purchaseDateColumn] as String;
+
+  @override
+  String toString() =>
+      'Purchase, Id = $id, customerId = $customerId, amount = $amount, purchaseDate = $purchaseDate';
+
+  @override
+  bool operator ==(covariant DatabasePurchase other) => id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
 class DatabaseNote {
   final int id;
-  // final String text;
+  final int total;
   final String customer;
-  final int amount;
-  final bool isSyncedWithCloud;
 
   DatabaseNote({
     required this.id,
     required this.customer,
-    required this.amount,
-    required this.isSyncedWithCloud,
+    required this.total,
   });
 
   DatabaseNote.fromRow(Map<String, Object?> map)
-      : id = map[idColumn] as int,
+      : id = map[customerIdColumn] as int,
         customer = map[customerColumn] as String,
-        amount = map[amountColumn] as int,
-        isSyncedWithCloud =
-            (map[isSyncedWithCloudColumn] as int) == 1 ? true : false;
+        total = map[totalColumn] as int;
 
   @override
   String toString() =>
-      'Note, ID = $id, isSyncedWithCloud = $isSyncedWithCloud, customer = $customer, amount = $amount ';
-
-  // @override
-  // bool operator ==(covariant DatabaseUser other) => id == other.id;
-
-  // @override
-  // int get hashCode => id.hashCode;
+      'Customer, ID = $id, customer = $customer, total = $total ';
 }
 
 const dbName = 'notes.db';
-const noteTable = 'note';
-const idColumn = 'id';
+const customerTable = 'customer';
+const purchaseTable = 'purchase';
+const customerIdColumn = 'customer_id';
 const customerColumn = 'customer';
 const amountColumn = 'amount';
-// const emailColumn = 'email';
-// const userIdColumn = 'user_id';
-const isSyncedWithCloudColumn = 'is_synced_with_cloud';
+const totalColumn = 'total';
+const purchaseDateColumn = 'purchase_date';
+const purchaseIdColumn = 'purchase_id';
 // const textColumn = 'text';
-const createNoteTable = '''CREATE TABLE IF NOT EXISTS "note"(
-        "id" INTEGER NOT NULL,
+const createNoteTable = '''CREATE TABLE IF NOT EXISTS "customer"(
+        "customer_id" INTEGER NOT NULL,
         "customer" TEXT,
-        "amount" INTEGER,
-        "is_synced_with_cloud" INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY("id" AUTOINCREMENT)
+        "total" INTEGER NOT NULL,
+        PRIMARY KEY("customer_id" AUTOINCREMENT)
       );''';
-// const createUserTable = '''CREATE TABLE IF NOT EXISTS "user"(
-//         "id" INTEGER NOT NULL,
-//         "email" TEXT NOT NULL UNIQUE,
-//         PRIMARY KEY("id" AUTOINCREMENT)
-//       );''';
+const createPurchaseTable = '''CREATE TABLE IF NOT EXISTS "purchase"(
+        "purchase_id" INTEGER NOT NULL,
+        "amount" INTEGER,
+        "customer_id" INTEGER NOT NULL,
+        "purchase_date" TEXT,
+        FOREIGN KEY("customer_id") REFERENCES "customer"("customer_id"),
+        PRIMARY KEY("purchase_id" AUTOINCREMENT)        
+      );''';
