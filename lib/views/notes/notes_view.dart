@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:my_app/services/crud/notes_service.dart';
 import 'package:my_app/views/notes/notes_list_view.dart';
 import '../../constants/routes.dart';
-import '../../enums/menu_action.dart';
+// import '../../enums/menu_action.dart';
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -34,33 +34,33 @@ class _NotesViewState extends State<NotesView> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.of(context).pushNamed(createOrUpdateNoteRoute);
+              Navigator.of(context).pushNamed(createRoute);
             },
             icon: const Icon(Icons.add),
           ),
-          PopupMenuButton<MenuAction>(
-            onSelected: (value) async {
-              switch (value) {
-                case MenuAction.logout:
-                  // final shouldLogout = await showLogOutDialog(context);
-                  // if (shouldLogout) {
-                  //   context.read<AuthBloc>().add(
-                  //         const AuthEventLogOut(),
-                  //       );
-                  // }
-                  break;
-                default:
-              }
-            },
-            itemBuilder: (context) {
-              return const [
-                PopupMenuItem<MenuAction>(
-                  value: MenuAction.logout,
-                  child: Text('Logout'),
-                )
-              ];
-            },
-          )
+          // PopupMenuButton<MenuAction>(
+          //   onSelected: (value) async {
+          //     switch (value) {
+          //       case MenuAction.logout:
+          //         // final shouldLogout = await showLogOutDialog(context);
+          //         // if (shouldLogout) {
+          //         //   context.read<AuthBloc>().add(
+          //         //         const AuthEventLogOut(),
+          //         //       );
+          //         // }
+          //         break;
+          //       default:
+          //     }
+          //   },
+          //   itemBuilder: (context) {
+          //     return const [
+          //       PopupMenuItem<MenuAction>(
+          //         value: MenuAction.logout,
+          //         child: Text('Logout'),
+          //       )
+          //     ];
+          //   },
+          // )
         ],
       ),
       body: FutureBuilder(
@@ -76,17 +76,20 @@ class _NotesViewState extends State<NotesView> {
                       final allNotes = snapshot.data as Iterable<DatabaseNote>;
                       return NotesListView(
                         notes: allNotes,
-                        onDeleteNote: (note) async {
-                          await _notesService.deleteNote(id: note.id);
-                        },
+                        // onDeleteNote: (note) async {
+                        //   await _notesService.deleteNote(id: note.id);
+                        // },
                         onTap: (note) {
-                          Navigator.of(context).pushNamed(
-                              createOrUpdateNoteRoute,
-                              arguments: note);
+                          Navigator.of(context).pushNamed(historyRoute,
+                              arguments: {'note': note});
+                        },
+                        onAdd: (note) {
+                          Navigator.of(context).pushNamed(updateRoute,
+                              arguments: {'note': note, 'Add': true});
                         },
                         onClear: (note) {
-                          Navigator.of(context)
-                              .pushNamed(clearPaymentRoute, arguments: note);
+                          Navigator.of(context).pushNamed(updateRoute,
+                              arguments: {'note': note, 'Add': false});
                         },
                       );
                     } else {

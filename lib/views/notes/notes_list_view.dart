@@ -6,15 +6,15 @@ typedef NoteCallback = void Function(DatabaseNote note);
 
 class NotesListView extends StatelessWidget {
   final Iterable<DatabaseNote> notes;
-  final NoteCallback onDeleteNote;
   final NoteCallback onTap;
+  final NoteCallback onAdd;
   final NoteCallback onClear;
 
   const NotesListView({
     super.key,
     required this.notes,
-    required this.onDeleteNote,
     required this.onTap,
+    required this.onAdd,
     required this.onClear,
   });
 
@@ -39,7 +39,7 @@ class NotesListView extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Text(
-                "${note.amount}",
+                "${note.total}",
                 style: const TextStyle(fontSize: 14),
               ),
             ],
@@ -60,7 +60,7 @@ class NotesListView extends StatelessWidget {
               const SizedBox(width: 8),
               TextButton(
                 onPressed: () {
-                  onTap(note);
+                  onAdd(note);
                 },
                 child: const Text('Add'),
               ),
