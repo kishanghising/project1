@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-// import 'package:bloc/bloc.dart';
+
 import 'package:my_app/constants/routes.dart';
-import 'package:my_app/views/notes/clear_payment_view.dart';
-// import 'package:my_app/services/auth/auth_service.dart';
-// import 'package:my_app/views/login_view.dart';
-import 'package:my_app/views/notes/create_update_note_view.dart';
+
+import 'package:my_app/views/notes/create_view.dart';
+import 'package:my_app/views/notes/history_view.dart';
 import 'package:my_app/views/notes/notes_view.dart';
-// import 'dart:developer' as devtools show log;
+import 'package:my_app/views/notes/update_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +18,10 @@ void main() {
       ),
       home: const NotesView(),
       routes: {
-        createOrUpdateNoteRoute: (context) => const CreateUpdateNoteView(),
-        clearPaymentRoute: (context) => const ClearPaymentView(),
         notesRoute: (context) => const NotesView(),
+        createRoute: (context) => const CreateView(),
+        updateRoute: (context) => const UpdateView(),
+        historyRoute: (context) => const HistoryView(),
       },
     ),
   );
