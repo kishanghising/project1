@@ -108,7 +108,7 @@ class _HistoryViewState extends State<HistoryView> {
                   ),
                   Container(
                     constraints: const BoxConstraints(
-                      maxHeight: 335.0,
+                      maxHeight: 300.0,
                     ),
                     decoration: BoxDecoration(
                       border: Border.all(
